@@ -37,6 +37,11 @@ public class NettyClient {
         }
     }
 
+    public static void main(String[] args) {
+        NettyClient client = new NettyClient();
+        client.connect("localhost",8008);
+    }
+
     class ClientHandler extends SimpleChannelInboundHandler{
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -50,7 +55,7 @@ public class NettyClient {
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             byte[] bytes = "hello,netty".getBytes("UTF-8");
             ByteBuf byteBuf = Unpooled.buffer(bytes.length);
-            byteBuf.writeBytes(byteBuf);
+            byteBuf.writeBytes(bytes);
             ctx.writeAndFlush(byteBuf);
         }
 

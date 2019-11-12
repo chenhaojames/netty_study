@@ -3,6 +3,7 @@ package xia.v.lan.tcp.l1;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -48,6 +49,14 @@ public class NettyServer {
             byte[] bytes = new byte[byteBuf.readableBytes()];
             byteBuf.readBytes(bytes);
             System.out.println("client say to server:"+new String(bytes,"UTF-8"));
+        }
+
+        @Override
+        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+            byte[] bytes = "hello,client".getBytes("UTF-8");
+            ByteBuf byteBuf = Unpooled.buffer(bytes.length);
+            byteBuf.writeBytes(bytes);
+            ctx.writeAndFlush(byteBuf);
         }
 
         @Override
