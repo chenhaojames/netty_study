@@ -7,6 +7,12 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.handler.timeout.IdleStateHandler;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author chenhao
@@ -25,6 +31,9 @@ public class NettyClient {
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
+                            //设定IdleStateHandler心跳检测每四秒进行一次写检测，如果四秒内write()方法未被调用则触发一次userEventTrigger()方法，实现客户端每四秒向服务端发送一次消息；
+                            ch.pipeline().addLast("idleStateHandler",new IdleStateHandler(0,4,0, TimeUnit.SECONDS));
+                            ch.pipeline().addLast("encoder",new LengthFieldPrepender(4,false));
                             ch.pipeline().addLast(new ClientHandler());
                         }
                     });
@@ -35,6 +44,11 @@ public class NettyClient {
         }finally {
             group.shutdownGracefully();
         }
+    }
+
+    public static void main(String[] args) {
+        NettyClient client = new NettyClient();
+        client.connect("localhost",8008);
     }
 
     class ClientHandler extends SimpleChannelInboundHandler{
@@ -50,8 +64,19 @@ public class NettyClient {
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             byte[] bytes = "hello,netty".getBytes("UTF-8");
             ByteBuf byteBuf = Unpooled.buffer(bytes.length);
-            byteBuf.writeBytes(byteBuf);
+            byteBuf.writeBytes(bytes);
             ctx.writeAndFlush(byteBuf);
+        }
+
+        @Override
+        public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+            System.out.println("已经有4s没有写操作了");
+            if(evt instanceof IdleStateEvent){
+                IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
+                if(idleStateEvent.state() == IdleState.WRITER_IDLE){
+                    ctx.writeAndFlush("biubiu");
+                }
+            }
         }
 
         @Override
